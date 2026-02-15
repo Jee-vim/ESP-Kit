@@ -11,6 +11,13 @@ Multi-tool ESP32 security platform.
 | `handshake.cpp` | Captures WPA handshakes (passive) |
 | `handshake-auto.cpp` | Auto-deauths clients + captures handshake |
 | `pmkid.cpp` | Captures PMKID from association requests |
+| `motion.cpp` | Motion-triggered photo capture |
+
+## TODO (Camera)
+
+- [ ] Motion-triggered capture
+- [ ] Continuous streaming
+- [ ] Timelapse capture
 
 
 ## How It Works
