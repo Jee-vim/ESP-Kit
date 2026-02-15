@@ -11,8 +11,6 @@ src/
 ├── handshake.cpp       # Captures WPA handshakes (passive)
 ├── handshake-auto.cpp  # Auto-deauths clients + captures handshake
 ├── pmkid.cpp           # Captures PMKID from association requests
-├── webui.cpp          # Web UI for sniffer (combines with sniffer)
-└── webui-handshake.cpp # Web UI for handshake-auto
 ```
 
 ## How It Works
@@ -59,18 +57,6 @@ Each .cpp file is a standalone firmware. Only one runs at a time.
 - Format: PMKID*BSSID*CLIENT_MAC*SSID
 - Stops after first capture
 
-### sniffer-web (NEW)
-- Combines sniffer.cpp + webui.cpp
-- Runs WiFi AP (SSID: ESP32-AUDITOR, password: 12345678)
-- Serves captured files via web browser
-- Access at http://192.168.4.1
-
-### handshake-web (NEW)
-- Combines handshake-auto.cpp + webui-handshake.cpp
-- Shows target status, handshake capture progress
-- Download captured handshakes from browser
-- Access at http://192.168.4.1
-
 ## Flash Mode
 
 1. Hold reset button
@@ -89,8 +75,6 @@ pio run -e deauth --target upload
 pio run -e handshake --target upload
 pio run -e handshake-auto --target upload
 pio run -e pmkid --target upload
-pio run -e sniffer-web --target upload
-pio run -e handshake-web --target upload
 
 # Monitor serial output
 pio device monitor
