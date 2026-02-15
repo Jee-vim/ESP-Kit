@@ -1,17 +1,17 @@
-# ESP32-WiFi-Tool
+# ESP-Kit
 
-WiFi auditing tools for ESP32-CAM.
+Multi-tool ESP32 security platform.
 
 ## File Structure
 
-```
-src/
-├── sniffer.cpp         # Captures WiFi packets to SD card
-├── deauth.cpp          # Auto-deauths WiFi networks
-├── handshake.cpp       # Captures WPA handshakes (passive)
-├── handshake-auto.cpp  # Auto-deauths clients + captures handshake
-├── pmkid.cpp           # Captures PMKID from association requests
-```
+| Module | Description |
+| --- | --- |
+| `sniffer.cpp` | Captures WiFi packets to SD card |
+| `deauth.cpp` | Auto-deauths WiFi networks |
+| `handshake.cpp` | Captures WPA handshakes (passive) |
+| `handshake-auto.cpp` | Auto-deauths clients + captures handshake |
+| `pmkid.cpp` | Captures PMKID from association requests |
+
 
 ## How It Works
 
