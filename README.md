@@ -15,10 +15,9 @@ Multi-tool ESP32 security platform.
 
 ## TODO (Camera)
 
-- [ ] Motion-triggered capture
+- [x] Motion-triggered capture
 - [ ] Continuous streaming
 - [ ] Timelapse capture
-
 
 ## How It Works
 
@@ -57,12 +56,19 @@ Each .cpp file is a standalone firmware. Only one runs at a time.
 - Also saves to /capture.pcap
 - LED on GPIO 33 flashes during capture
 
-### pmkid.cpp (NEW)
+### pmkid.cpp
 - Sniffs association/reassociation requests for RSN IE
 - Extracts PMKID if present
 - Saves to /pmkid.txt in hashcat format
 - Format: PMKID*BSSID*CLIENT_MAC*SSID
 - Stops after first capture
+
+### motion.cpp
+- Captures photo when motion detected
+- Compares pixel differences between frames
+- Saves to /motion/<timestamp>.jpg on SD
+- Configurable threshold (20) and cooldown (5s)
+- LED on GPIO 33 flashes on capture
 
 ## Flash Mode
 
@@ -82,6 +88,7 @@ pio run -e deauth --target upload
 pio run -e handshake --target upload
 pio run -e handshake-auto --target upload
 pio run -e pmkid --target upload
+pio run -e motion --target upload
 
 # Monitor serial output
 pio device monitor
@@ -117,3 +124,15 @@ After capturing PMKID (in pmkid.txt):
 
 # Crack with hashcat (mode 22000)
 hashcat -m 22000 pmkid.txt wordlist.txt
+
+## Access SD Card
+
+```bash
+# Mount (adjust /dev/sdb as needed)
+sudo mkdir -p /mnt/sdcard
+sudo mount -o ro /dev/sdb /mnt/sdcard
+cd /mnt/sdcard
+
+# Unmount before removing
+sudo umount /mnt/sdcard
+```

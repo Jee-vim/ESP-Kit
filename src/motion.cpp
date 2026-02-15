@@ -50,8 +50,8 @@ void initCamera() {
     config.pin_pclk = PCLK_GPIO_NUM;
     config.pin_vsync = VSYNC_GPIO_NUM;
     config.pin_href = HREF_GPIO_NUM;
-    config.pin_sscb_sda = SIOD_GPIO_NUM;
-    config.pin_sscb_scl = SIOC_GPIO_NUM;
+    config.pin_sccb_sda = SIOD_GPIO_NUM;
+    config.pin_sccb_scl = SIOC_GPIO_NUM;
     config.pin_pwdn = PWDN_GPIO_NUM;
     config.pin_reset = RESET_GPIO_NUM;
     config.xclk_freq_hz = 20000000;
@@ -64,8 +64,7 @@ void initCamera() {
 
     esp_err_t err = esp_camera_init(&config);
     if (err != ESP_OK) {
-        Serial.printf("[CAMERA] Init failed: %s
-", esp_err_to_name(err));
+        Serial.printf("[CAMERA] Init failed: %s\n", esp_err_to_name(err));
         return;
     }
     Serial.println("[CAMERA] Init OK");
@@ -75,19 +74,18 @@ bool detectMotion(uint8_t* current, size_t len) {
     if (!baselineSet || !baselineFrame || len < 1000) return false;
 
     size_t skip = 200;
-    size_t compareLen = min(len - skip, 10000ul);
-    if (compareLen < 100) return false;
+    size_t cmpLen = len > skip ? min((size_t)10000, len - skip) : 0;
+    if (cmpLen < 100) return false;
 
     uint32_t diff = 0;
-    for (size_t i = 0; i < compareLen; i++) {
+    for (size_t i = 0; i < cmpLen; i++) {
         int d = baselineFrame[skip + i] - current[skip + i];
         if (d < 0) d = -d;
         diff += d;
     }
 
-    uint32_t avgDiff = diff / compareLen;
-    Serial.printf("[MOTION] Avg diff: %d
-", avgDiff);
+    uint32_t avgDiff = diff / cmpLen;
+    Serial.printf("[MOTION] Avg diff: %d\n", avgDiff);
 
     return avgDiff > MOTION_THRESHOLD;
 }
@@ -95,7 +93,7 @@ bool detectMotion(uint8_t* current, size_t len) {
 void savePhoto(camera_fb_t* fb) {
     char filename[32];
     uint32_t ts = millis();
-    sprintf(filename, "/motion_%lu.jpg", ts);
+    sprintf(filename, "/motion/%lu.jpg", ts);
 
     File file = SD_MMC.open(filename, FILE_WRITE);
     if (!file) {
@@ -106,8 +104,7 @@ void savePhoto(camera_fb_t* fb) {
     file.write(fb->buf, fb->len);
     file.close();
 
-    Serial.printf("[CAPTURE] Saved %s (%d bytes)
-", filename, fb->len);
+    Serial.printf("[CAPTURE] Saved %s (%d bytes)\n", filename, fb->len);
     digitalWrite(LED_PIN, LOW);
     delay(100);
     digitalWrite(LED_PIN, HIGH);
@@ -130,14 +127,14 @@ void setup() {
 
     Serial.begin(115200);
     delay(1000);
-    Serial.println("
-[MOTION] Starting...");
+    Serial.println("\n[MOTION] Starting...");
     Serial.flush();
 
     if (!SD_MMC.begin("/sdcard", true)) {
         Serial.println("[SD] Init FAILED");
     } else {
         Serial.println("[SD] Init OK");
+        SD_MMC.mkdir("/motion");
     }
 
     initCamera();
