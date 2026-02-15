@@ -14,6 +14,7 @@ Multi-tool ESP32 security platform.
 | `handshake-auto.cpp` | Auto-deauths clients + captures handshake |
 | `pmkid.cpp` | Captures PMKID from association requests |
 | `motion.cpp` | Motion-triggered photo capture |
+| `stream.cpp` | Continuous camera streaming via web |
 
 ## TODO (Camera)
 
@@ -72,6 +73,12 @@ Each .cpp file is a standalone firmware. Only one runs at a time.
 - Configurable threshold (20) and cooldown (5s)
 - LED on GPIO 33 flashes on capture
 
+### stream.cpp
+- Continuous camera streaming via web browser
+- Creates WiFi AP (SSID: ESP-Kit, Pass: 12345678)
+- Access at http://192.168.4.1
+- MJPEG streaming at /stream endpoint
+
 ## Flash Mode
 
 1. Hold reset button
@@ -82,18 +89,20 @@ Each .cpp file is a standalone firmware. Only one runs at a time.
 ## Commands
 
 # Erase flash (first time)
+```bash
 pio run --target erase
+```
 
 # Build & Upload specific script
+```bash 
 pio run -e sniffer --target upload
 pio run -e deauth --target upload
 pio run -e handshake --target upload
 pio run -e handshake-auto --target upload
 pio run -e pmkid --target upload
 pio run -e motion --target upload
-
-# Monitor serial output
-pio device monitor
+pio run -e stream --target upload
+```
 
 ## Default Target
 
