@@ -1,5 +1,7 @@
 # ESP-Kit
 
+> Requires ESP32-CAM (AI-Thinker) for camera modules
+
 Multi-tool ESP32 security platform.
 
 ## File Structure
