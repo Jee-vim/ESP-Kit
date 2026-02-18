@@ -13,6 +13,20 @@
 
 #define LED_PIN 33
 
+// Status LED patterns
+void ledBlink(int times, int duration) {
+    for (int i = 0; i < times; i++) {
+        digitalWrite(LED_PIN, LOW);
+        delay(duration);
+        digitalWrite(LED_PIN, HIGH);
+        delay(duration);
+    }
+}
+
+void ledSolid(bool on) {
+    digitalWrite(LED_PIN, on ? LOW : HIGH);
+}
+
 std::set<String> seenMACs;
 File pcapFile;
 String pcapFilename;
@@ -188,12 +202,28 @@ void setup() {
     esp_wifi_set_promiscuous(true);
     esp_wifi_set_promiscuous_rx_cb(&sniffer_callback);
     Serial.println("SNIFFER RUNNING");
+    
+    // LED pattern: fast blink to show running
+    ledBlink(3, 100);
 }
 
 void loop() {
     static uint8_t ch = 1;
+    static uint32_t lastStatus = 0;
+    
     currentChannel = ch;
     esp_wifi_set_channel(ch, WIFI_SECOND_CHAN_NONE);
     ch = (ch % 13) + 1;
+    
+    // Status reporting every 5 seconds
+    if (millis() - lastStatus > 5000) {
+        lastStatus = millis();
+        Serial.printf("[STATUS] CH: %d | Packets: %lu | Buffer: %u/%u
+", 
+                      ch, packetCount, bufferPos, PCAP_BUFFER_SIZE);
+        // Blink once per channel change
+        ledBlink(1, 50);
+    }
+    
     delay(1000);
 }
