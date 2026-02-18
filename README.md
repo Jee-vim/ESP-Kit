@@ -146,10 +146,26 @@ sudo umount /mnt/sdcard
 ## Todo List
 
 - [x] Fix missing source files in platformio.ini (handshake.cpp, handshake-auto.cpp)
-- [ ] Fix format string vulnerabilities in all files (%% instead of %)
-- [ ] Fix buffer overflow risk in deauth.cpp with TARGET_MAC
-- [ ] Fix WiFi channel handling in sniffer.cpp for promiscuous mode
-- [ ] Implement SD card buffering in sniffer.cpp
-- [ ] Add error recovery for SD card operations
-- [ ] Add status reporting features
-- [ ] Clean up memory management in motion.cpp
+- [x] Fix format string vulnerabilities in all files (%% instead of %)
+- [x] Fix buffer overflow risk in deauth.cpp with TARGET_MAC
+- [x] Fix WiFi channel handling in sniffer.cpp for promiscuous mode
+- [x] Implement SD card buffering in sniffer.cpp
+- [x] Add error recovery for SD card operations
+- [x] Add status reporting features
+- [x] Clean up memory management in motion.cpp
+
+## Changelog
+
+### v2.0.0 (Current - All Issues Fixed)
+- Added SD card buffering for improved I/O performance
+- Added SD card error recovery with retry logic
+- Added status reporting with LED patterns and serial output
+- Fixed format string vulnerabilities in all capture files
+- Improved memory management in motion.cpp
+- Fixed WiFi channel handling in promiscuous mode
+- Replaced manual `WiFi.channel()` calls with `currentChannel` tracking
+
+### v1.0.0 (Initial Version)
+- Basic WiFi sniffer, deauth, handshake capture, PMKID capture
+- Motion-triggered photo capture
+- Camera streaming via web server
