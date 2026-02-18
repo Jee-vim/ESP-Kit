@@ -200,7 +200,7 @@ void setup() {
     time_t now = time(nullptr);
     struct tm* ti = localtime(&now);
     char fname[64];
-    snprintf(fname, sizeof(fname), "/pmkid/%%04d%%02d%%02d-%%02d%%02d%%02d.txt",
+    snprintf(fname, sizeof(fname), "/pmkid/%04d%02d%02d-%02d%02d%02d.txt",
              ti->tm_year + 1900, ti->tm_mon + 1, ti->tm_mday,
              ti->tm_hour, ti->tm_min, ti->tm_sec);
     pmkidFilename = String(fname);

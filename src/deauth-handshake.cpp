@@ -227,7 +227,7 @@ void setup() {
         time_t now = time(nullptr);
         struct tm* ti = localtime(&now);
         char fname[64];
-        snprintf(fname, sizeof(fname), "/handshake/%%04d%%02d%%02d-%%02d%%02d%%02d.pcap",
+        snprintf(fname, sizeof(fname), "/handshake/%04d%02d%02d-%02d%02d%02d.pcap",
                  ti->tm_year + 1900, ti->tm_mon + 1, ti->tm_mday,
                  ti->tm_hour, ti->tm_min, ti->tm_sec);
         pcapFilename = String(fname);
