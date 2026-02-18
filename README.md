@@ -1,26 +1,21 @@
 # ESP-Kit
 
-> Requires ESP32-CAM (AI-Thinker) for camera modules
+> Requires ESP32-CAM
 
 Multi-tool ESP32 security platform.
 
 ## File Structure
 
-| Module | Description |
-| --- | --- |
-| `sniffer.cpp` | Captures WiFi packets to SD card |
-| `deauth.cpp` | Auto-deauths WiFi networks |
-| `handshake.cpp` | Captures WPA handshakes (passive) |
-| `handshake-auto.cpp` | Auto-deauths clients + captures handshake |
-| `pmkid.cpp` | Captures PMKID from association requests |
-| `motion.cpp` | Motion-triggered photo capture |
-| `stream.cpp` | Continuous camera streaming via web |
+| Module | Description | Tested  |
+| --- | --- | --- |
+| `sniffer.cpp` | Captures WiFi packets to SD card | Yes |
+| `deauth.cpp` | Auto-deauths WiFi networks | No |
+| `deauth-handshake.cpp` | Deauth clients + capture handshake | No |
+| `deauth-ap-handshake.cpp` | Fake AP + deauth + capture handshake | No |
+| `pmkid.cpp` | Captures PMKID from association requests | No |
+| `motion.cpp` | Motion-triggered photo capture | Yes |
+| `stream.cpp` | Continuous camera streaming via web | Yes |
 
-## TODO (Camera)
-
-- [x] Motion-triggered capture
-- [ ] Continuous streaming
-- [ ] Timelapse capture
 
 ## How It Works
 
@@ -32,7 +27,6 @@ Each .cpp file is a standalone firmware. Only one runs at a time.
 - Detects beacon frames (WiFi networks)
 - Saves to SD:
   - /capture.pcap - Raw packets (Wireshark)
-  - /networks.txt - Parsed: SSID|MAC|CH
 - LED on GPIO 33 flashes during writes
 
 ### deauth.cpp
@@ -44,20 +38,20 @@ Each .cpp file is a standalone firmware. Only one runs at a time.
   - Specific target (set TARGET_MAC)
 - LED on GPIO 33 flashes during deauth
 
-### handshake.cpp (Passive)
-- Sniffs for WPA handshakes
-- First detected network becomes target
-- Stays on target channel
-- Captures EAPOL packets when clients connect naturally
-- Saves to: /handshake_XXXXXXXXXXXX.pcap
 
-### handshake-auto.cpp (Auto)
-- First network detected = target
-- Auto-sends deauth every 5 seconds (broadcast to all clients)
-- Captures handshake when devices reconnect
+### deauth-handshake.cpp
+- Deauths clients from target network
+- Captures handshake when devices reconnect to real AP
 - Stops when full handshake (4 messages) captured
-- Also saves to /capture.pcap
+- Saves to /handshake/XXXXXXXXXXXX.pcap on SD
 - LED on GPIO 33 flashes during capture
+
+### deauth-ap-handshake.cpp
+- Deauths clients from target network
+- Creates fake AP with target SSID
+- Captures WPA handshake when clients reconnect
+- Saves to /handshake/XXXXXXXXXXXX.pcap on SD
+- LED on GPIO 33 flashes on capture
 
 ### pmkid.cpp
 - Sniffs association/reassociation requests for RSN IE
@@ -97,8 +91,8 @@ pio run --target erase
 ```bash 
 pio run -e sniffer --target upload
 pio run -e deauth --target upload
-pio run -e handshake --target upload
-pio run -e handshake-auto --target upload
+pio run -e deauth-handshake --target upload
+pio run -e deauth-ap-handshake --target upload
 pio run -e pmkid --target upload
 pio run -e motion --target upload
 pio run -e stream --target upload
@@ -147,3 +141,6 @@ cd /mnt/sdcard
 # Unmount before removing
 sudo umount /mnt/sdcard
 ```
+
+## TODO
+- Smart Device Takeover
