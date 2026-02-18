@@ -9,7 +9,9 @@
 
 #define LED_PIN 33
 
-bool targetSet = (strlen(TARGET_MAC) > 0);
+// Safe check for TARGET_MAC - compile time macro expansion
+const char* TARGET_MAC_PTR = TARGET_MAC;
+bool targetSet = (strlen(TARGET_MAC_PTR) > 5);
 
 void parseMac(const char* str, uint8_t* mac) {
     int vals[6];
