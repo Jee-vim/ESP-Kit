@@ -79,7 +79,7 @@ void sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
             char ssid[33] = {0};
             if (ssid_len > 0 && ssid_len <= 32) memcpy(ssid, &payload[38], ssid_len);
 
-            uint8_t ch = WiFi.channel();
+            uint8_t ch = currentChannel;  // Use tracked channel instead of WiFi.channel() for promiscuous mode
 
             Serial.printf("\n[NEW] %s | %s | CH: %d\n> ", ssid, macStr, ch);
         }
