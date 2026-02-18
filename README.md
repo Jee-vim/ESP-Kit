@@ -142,5 +142,14 @@ cd /mnt/sdcard
 sudo umount /mnt/sdcard
 ```
 
-## TODO
-- Smart Device Takeover
+
+## Todo List
+
+- [x] Fix missing source files in platformio.ini (handshake.cpp, handshake-auto.cpp)
+- [ ] Fix format string vulnerabilities in all files (%% instead of %)
+- [ ] Fix buffer overflow risk in deauth.cpp with TARGET_MAC
+- [ ] Fix WiFi channel handling in sniffer.cpp for promiscuous mode
+- [ ] Implement SD card buffering in sniffer.cpp
+- [ ] Add error recovery for SD card operations
+- [ ] Add status reporting features
+- [ ] Clean up memory management in motion.cpp
