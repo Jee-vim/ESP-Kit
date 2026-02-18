@@ -1,3 +1,4 @@
+#include <time.h>
 #include <Arduino.h>
 #include <WiFi.h>
 #include <esp_wifi.h>
@@ -8,6 +9,7 @@
 #include <set>
 
 #define LED_PIN 33
+String pmkidFilename;
 
 std::set<String> seenPMKIDs;
 uint8_t targetBSSID[6];
@@ -114,7 +116,7 @@ void savePMKIDHash(uint8_t* bssid, uint8_t* client_mac, uint8_t* pmkid, char* ss
     if (seenPMKIDs.find(String(key)) == seenPMKIDs.end()) {
         seenPMKIDs.insert(String(key));
         
-        File f = SD_MMC.open("/pmkid.txt", FILE_APPEND);
+        File f = SD_MMC.open(pmkidFilename.c_str(), FILE_APPEND);
         if (f) {
             digitalWrite(LED_PIN, LOW);
             f.print(hashLine);
@@ -195,9 +197,17 @@ void setup() {
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, HIGH);
     Serial.begin(115200);
+    time_t now = time(nullptr);
+    struct tm* ti = localtime(&now);
+    char fname[64];
+    snprintf(fname, sizeof(fname), "/pmkid/%%04d%%02d%%02d-%%02d%%02d%%02d.txt",
+             ti->tm_year + 1900, ti->tm_mon + 1, ti->tm_mday,
+             ti->tm_hour, ti->tm_min, ti->tm_sec);
+    pmkidFilename = String(fname);
 
     if (SD_MMC.begin("/sdcard", true)) {
         Serial.println("SD: OK");
+        SD_MMC.mkdir("/pmkid");
     } else {
         Serial.println("SD: FAILED");
     }

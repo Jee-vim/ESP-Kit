@@ -1,3 +1,4 @@
+#include <time.h>
 #include <Arduino.h>
 #include "FS.h"
 #include "SD_MMC.h"
@@ -9,6 +10,7 @@
 #endif
 
 #define LED_PIN 33
+String photoPrefix;
 #define MOTION_THRESHOLD 20
 #define MOTION_COOLDOWN 5000
 
@@ -91,9 +93,9 @@ bool detectMotion(uint8_t* current, size_t len) {
 }
 
 void savePhoto(camera_fb_t* fb) {
-    char filename[32];
+    char filename[64];
     uint32_t ts = millis();
-    sprintf(filename, "/motion/%lu.jpg", ts);
+    snprintf(filename, sizeof(filename), "%s-%lu.jpg", photoPrefix.c_str(), ts);
 
     File file = SD_MMC.open(filename, FILE_WRITE);
     if (!file) {
@@ -134,6 +136,13 @@ void setup() {
         Serial.println("[SD] Init FAILED");
     } else {
         Serial.println("[SD] Init OK");
+        time_t now = time(nullptr);
+        struct tm* ti = localtime(&now);
+        char prefix[64];
+        snprintf(prefix, sizeof(prefix), "/motion/%04d%02d%02d-%02d%02d%02d",
+                 ti->tm_year + 1900, ti->tm_mon + 1, ti->tm_mday,
+                 ti->tm_hour, ti->tm_min, ti->tm_sec);
+        photoPrefix = String(prefix);
         SD_MMC.mkdir("/motion");
     }
 

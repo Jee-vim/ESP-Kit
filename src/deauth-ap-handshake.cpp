@@ -1,3 +1,4 @@
+#include <time.h>
 #include <Arduino.h>
 #include <WiFi.h>
 #include <esp_wifi.h>
@@ -19,12 +20,11 @@ uint8_t stage = 0;  // 0=scanning, 1=deauthing, 2=capturing
 
 std::set<String> seenHandshakes;
 File pcapFile;
+String pcapFilename;
 
 void initPcapHeader() {
-    char filename[32];
-    sprintf(filename, "/handshake/%02X%02X%02X%02X%02X%02X.pcap"),
-            targetBSSID[0], targetBSSID[1], targetBSSID[2],
-            targetBSSID[3], targetBSSID[4], targetBSSID[5]);
+    char filename[64];
+    sprintf(filename, "%s", pcapFilename.c_str());
     pcapFile = SD_MMC.open(filename, FILE_WRITE);
     if (pcapFile) {
         uint32_t magic = 0xa1b2c3d4;
@@ -46,10 +46,8 @@ void initPcapHeader() {
 }
 
 void writePcapPacket(const uint8_t* payload, uint16_t len) {
-    char filename[32];
-    sprintf(filename, "/handshake/%02X%02X%02X%02X%02X%02X.pcap"),
-            targetBSSID[0], targetBSSID[1], targetBSSID[2],
-            targetBSSID[3], targetBSSID[4], targetBSSID[5]);
+    char filename[64];
+    sprintf(filename, "%s", pcapFilename.c_str());
     pcapFile = SD_MMC.open(filename, FILE_APPEND);
     if (!pcapFile) return;
     uint32_t ts_sec = micros() / 1000000;
@@ -141,6 +139,13 @@ void setup() {
         Serial.println("[SD] Init FAILED");
     } else {
         Serial.println("[SD] Init OK");
+        time_t now = time(nullptr);
+        struct tm* ti = localtime(&now);
+        char fname[64];
+        snprintf(fname, sizeof(fname), "/handshake/%%04d%%02d%%02d-%%02d%%02d%%02d.pcap",
+                 ti->tm_year + 1900, ti->tm_mon + 1, ti->tm_mday,
+                 ti->tm_hour, ti->tm_min, ti->tm_sec);
+        pcapFilename = String(fname);
         SD_MMC.mkdir("/handshake");
     }
 

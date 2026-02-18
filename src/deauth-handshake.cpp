@@ -1,3 +1,4 @@
+#include <time.h>
 #include <Arduino.h>
 #include <WiFi.h>
 #include <esp_wifi.h>
@@ -16,6 +17,7 @@ uint8_t targetBSSID[6];
 bool targetSet = false;
 uint8_t targetChannel = 1;
 bool handshakeComplete = false;
+String pcapFilename;
 int stage = 1; // 1 = deauth all, 2 = capture handshakes
 #define DEAUTH_DURATION 30000  // 30 seconds deauthing all
 
@@ -49,7 +51,7 @@ bool isEAPOL(uint8_t* payload) {
 }
 
 void initPcapHeader() {
-    pcapFile = SD_MMC.open("/capture.pcap", FILE_WRITE);
+    pcapFile = SD_MMC.open(pcapFilename.c_str(), FILE_WRITE);
     if (pcapFile) {
         uint32_t magic = 0xa1b2c3d4;
         uint16_t version_major = 2;
@@ -182,7 +184,7 @@ void sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
     }
 
     if (pcapInitialized && len > 0 && len < 2560) {
-        pcapFile = SD_MMC.open("/capture.pcap", FILE_APPEND);
+        pcapFile = SD_MMC.open(pcapFilename.c_str(), FILE_APPEND);
         if (pcapFile) {
             uint32_t ts_sec = micros() / 1000000;
             uint32_t ts_usec = micros() % 1000000;
@@ -222,6 +224,13 @@ void setup() {
         Serial.println("SD: FAILED (continuing without)");
     } else {
         Serial.println("SD: OK");
+        time_t now = time(nullptr);
+        struct tm* ti = localtime(&now);
+        char fname[64];
+        snprintf(fname, sizeof(fname), "/handshake/%%04d%%02d%%02d-%%02d%%02d%%02d.pcap",
+                 ti->tm_year + 1900, ti->tm_mon + 1, ti->tm_mday,
+                 ti->tm_hour, ti->tm_min, ti->tm_sec);
+        pcapFilename = String(fname);
         SD_MMC.mkdir("/handshake");
         initPcapHeader();
     }

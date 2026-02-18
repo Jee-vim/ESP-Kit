@@ -5,13 +5,14 @@
 #include "SD_MMC.h"
 #include "soc/rtc_cntl_reg.h"
 #include "soc/soc.h"
+#include <time.h>
 #include <set>
 
 #define LED_PIN 33
 
 std::set<String> seenMACs;
 File pcapFile;
-File logFile;
+String pcapFilename;
 bool pcapInitialized = false;
 uint32_t packetCount = 0;
 uint8_t currentChannel = 1;
@@ -21,7 +22,7 @@ extern void webui_init();
 #endif
 
 void initPcapHeader() {
-    pcapFile = SD_MMC.open("/capture.pcap", FILE_WRITE);
+    pcapFile = SD_MMC.open(pcapFilename.c_str(), FILE_WRITE);
     if (pcapFile) {
         uint32_t magic = 0xa1b2c3d4;
         uint16_t version_major = 2;
@@ -44,7 +45,7 @@ void initPcapHeader() {
 }
 
 void writePcapPacket(const uint8_t* payload, uint16_t len) {
-    pcapFile = SD_MMC.open("/capture.pcap", FILE_APPEND);
+    pcapFile = SD_MMC.open(pcapFilename.c_str(), FILE_APPEND);
     if (!pcapFile) return;
 
     uint32_t ts_sec = micros() / 1000000;
@@ -60,14 +61,6 @@ void writePcapPacket(const uint8_t* payload, uint16_t len) {
     pcapFile.close();
 }
 
-void logNetwork(const char* ssid, const char* mac, uint8_t ch) {
-    logFile = SD_MMC.open("/networks.txt", FILE_APPEND);
-    if (logFile) {
-        logFile.printf("%s|%s|%d\n", ssid, mac, ch);
-        logFile.close();
-    }
-}
-
 void sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
     wifi_promiscuous_pkt_t* pkt = (wifi_promiscuous_pkt_t*)buf;
     uint8_t* payload = pkt->payload;
@@ -79,16 +72,15 @@ void sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
         char macStr[18];
         sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X", 
                 bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
-        
+
         if (seenMACs.find(String(macStr)) == seenMACs.end()) {
             seenMACs.insert(String(macStr));
             int ssid_len = payload[37];
             char ssid[33] = {0};
             if (ssid_len > 0 && ssid_len <= 32) memcpy(ssid, &payload[38], ssid_len);
-            
+
             uint8_t ch = WiFi.channel();
-            logNetwork(ssid, macStr, ch);
-            
+
             Serial.printf("\n[NEW] %s | %s | CH: %d\n> ", ssid, macStr, ch);
         }
     }
@@ -101,14 +93,24 @@ void sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
 }
 
 void setup() {
-    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); 
+    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, HIGH);
     Serial.begin(115200);
 
+    time_t now = time(nullptr);
+    struct tm* ti = localtime(&now);
+    char fname[64];
+    snprintf(fname, sizeof(fname), "/sniffer/%04d%02d%02d-%02d%02d%02d.pcap",
+             ti->tm_year + 1900, ti->tm_mon + 1, ti->tm_mday,
+             ti->tm_hour, ti->tm_min, ti->tm_sec);
+    pcapFilename = String(fname);
+
     if (SD_MMC.begin("/sdcard", true)) {
         Serial.println("SD: OK");
+        SD_MMC.mkdir("/sniffer");
         initPcapHeader();
+        Serial.printf("Saving to: %s\n", fname);
     } else {
         Serial.println("SD: FAILED");
     }
@@ -128,5 +130,5 @@ void loop() {
     currentChannel = ch;
     esp_wifi_set_channel(ch, WIFI_SECOND_CHAN_NONE);
     ch = (ch % 13) + 1;
-    delay(1000); 
+    delay(1000);
 }
