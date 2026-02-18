@@ -8,6 +8,9 @@
 #include <time.h>
 #include <set>
 
+#define PCAP_BUFFER_SIZE 1024  // Buffer size in bytes
+#define PCAP_MAX_PACKETS 10    // Max packets per buffer
+
 #define LED_PIN 33
 
 std::set<String> seenMACs;
@@ -16,6 +19,10 @@ String pcapFilename;
 bool pcapInitialized = false;
 uint32_t packetCount = 0;
 uint8_t currentChannel = 1;
+
+// SD card buffering
+uint8_t pcapBuffer[PCAP_BUFFER_SIZE];
+uint16_t bufferPos = 0;  // Current position in buffer
 
 #ifdef WEBUI
 extern void webui_init();
@@ -45,20 +52,53 @@ void initPcapHeader() {
 }
 
 void writePcapPacket(const uint8_t* payload, uint16_t len) {
-    pcapFile = SD_MMC.open(pcapFilename.c_str(), FILE_APPEND);
-    if (!pcapFile) return;
-
+    // Skip packet if buffer full or file not ready
+    if (!pcapInitialized || len > 2560) return;
+    
+    // Ensure we have enough space for packet + header
+    if (bufferPos + len + 16 >= PCAP_BUFFER_SIZE) {
+        flushPcapBuffer();
+    }
+    
+    // Add timestamp header
     uint32_t ts_sec = micros() / 1000000;
     uint32_t ts_usec = micros() % 1000000;
     uint32_t incl_len = len;
     uint32_t orig_len = len;
+    
+    memcpy(pcapBuffer + bufferPos, &ts_sec, 4);
+    bufferPos += 4;
+    memcpy(pcapBuffer + bufferPos, &ts_usec, 4);
+    bufferPos += 4;
+    memcpy(pcapBuffer + bufferPos, &incl_len, 4);
+    bufferPos += 4;
+    memcpy(pcapBuffer + bufferPos, &orig_len, 4);
+    bufferPos += 4;
+    
+    // Copy packet data
+    memcpy(pcapBuffer + bufferPos, payload, len);
+    bufferPos += len;
+    
+    // Flush buffer if it's getting full (90% full)
+    if (bufferPos > PCAP_BUFFER_SIZE * 9 / 10) {
+        flushPcapBuffer();
+    }
+}
 
-    pcapFile.write((uint8_t*)&ts_sec, 4);
-    pcapFile.write((uint8_t*)&ts_usec, 4);
-    pcapFile.write((uint8_t*)&incl_len, 4);
-    pcapFile.write((uint8_t*)&orig_len, 4);
-    pcapFile.write(payload, len);
-    pcapFile.close();
+void flushPcapBuffer() {
+    if (bufferPos == 0) return;
+    
+    if (!pcapFile) {
+        pcapFile = SD_MMC.open(pcapFilename.c_str(), FILE_APPEND);
+        if (!pcapFile) {
+            bufferPos = 0;
+            return;
+        }
+    }
+    
+    pcapFile.write(pcapBuffer, bufferPos);
+    pcapFile.flush();
+    bufferPos = 0;
 }
 
 void sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
