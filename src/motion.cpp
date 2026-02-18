@@ -112,13 +112,24 @@ void savePhoto(camera_fb_t* fb) {
     digitalWrite(LED_PIN, HIGH);
 }
 
+void cleanupBaseline() {
+    if (baselineFrame) {
+        free(baselineFrame);
+        baselineFrame = nullptr;
+        baselineSet = false;
+        Serial.println("[BASELINE] Cleaned up");
+    }
+}
+
 void setBaseline(camera_fb_t* fb) {
-    if (baselineFrame) free(baselineFrame);
+    cleanupBaseline();  // Clean up old baseline first
     baselineFrame = (uint8_t*)malloc(fb->len);
     if (baselineFrame) {
         memcpy(baselineFrame, fb->buf, fb->len);
         baselineSet = true;
         Serial.println("[BASELINE] Set");
+    } else {
+        Serial.println("[BASELINE] Memory allocation failed");
     }
 }
 
@@ -156,6 +167,9 @@ void setup() {
     }
 
     Serial.println("[MOTION] Running - waiting for motion...");
+    
+    // Clear baseline at end of setup to free memory from initial frame
+    cleanupBaseline();
 }
 
 void loop() {
