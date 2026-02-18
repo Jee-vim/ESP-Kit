@@ -28,9 +28,13 @@ uint16_t bufferPos = 0;  // Current position in buffer
 extern void webui_init();
 #endif
 
+// SD card error recovery retry count
+#define SD_RETRIES 3
+
 void initPcapHeader() {
-    pcapFile = SD_MMC.open(pcapFilename.c_str(), FILE_WRITE);
-    if (pcapFile) {
+    for (int retry = 0; retry < SD_RETRIES; retry++) {
+        pcapFile = SD_MMC.open(pcapFilename.c_str(), FILE_WRITE);
+        if (pcapFile) {
         uint32_t magic = 0xa1b2c3d4;
         uint16_t version_major = 2;
         uint16_t version_minor = 4;
@@ -48,7 +52,14 @@ void initPcapHeader() {
         pcapFile.write((uint8_t*)&network, 4);
         pcapFile.close();
         pcapInitialized = true;
+        break;  // Success, exit retry loop
+    } else {
+        Serial.println("[SD] Retry " + String(retry + 1) + " failed");
+        delay(100);
     }
+}
+if (!pcapInitialized) {
+    Serial.println("[SD] Init FAILED after " + String(SD_RETRIES) + " retries");
 }
 
 void writePcapPacket(const uint8_t* payload, uint16_t len) {
@@ -89,14 +100,28 @@ void flushPcapBuffer() {
     if (bufferPos == 0) return;
     
     if (!pcapFile) {
-        pcapFile = SD_MMC.open(pcapFilename.c_str(), FILE_APPEND);
+        // Retry opening file
+        for (int retry = 0; retry < SD_RETRIES; retry++) {
+            pcapFile = SD_MMC.open(pcapFilename.c_str(), FILE_APPEND);
+            if (pcapFile) {
+                break;
+            }
+            Serial.println("[SD] File re-open retry " + String(retry + 1));
+            delay(50);
+        }
         if (!pcapFile) {
             bufferPos = 0;
+            Serial.println("[SD] Failed to reopen file");
             return;
         }
     }
     
-    pcapFile.write(pcapBuffer, bufferPos);
+    // Write with error checking
+    size_t written = pcapFile.write(pcapBuffer, bufferPos);
+    if (written != bufferPos) {
+        Serial.printf("[SD] Write incomplete: %u of %u bytes
+", written, bufferPos);
+    }
     pcapFile.flush();
     bufferPos = 0;
 }
