@@ -2,8 +2,6 @@
 pkgs.mkShell {
   buildInputs = with pkgs; [
     platformio
-    esptool
-    python3Packages.pyserial
   ];
 
   shellHook = ''
